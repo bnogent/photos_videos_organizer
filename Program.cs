@@ -12,6 +12,12 @@ using MetadataExtractor.Formats.Exif;
 
 namespace photos_videos_organizer
 {
+
+    class DateInfos
+    {
+        public DateTime Date { get; set; }
+        public int Mode { get; set; }
+    }
     class Program
     {
         //public static string dirToSave;
@@ -44,7 +50,7 @@ namespace photos_videos_organizer
         private static Regex r = new Regex(":");
 
 
-        public static DateTime GetDateTakenFromImage2(string path)
+        public static DateInfos GetDateTakenFromImage2(string path)
         {
             try
             {
@@ -56,37 +62,37 @@ namespace photos_videos_organizer
                     if (dateTime.HasValue)
                     {
                         nimages++;
-                        return dateTime.Value;
+                        return new DateInfos() { Date = dateTime.Value, Mode = 0 };                        
                     }                    
                 }
                 throw new Exception("perso");
             } catch
             {
                 nimageslastwrite++;
-                return new FileInfo(path).LastWriteTime;
+                return new DateInfos() { Date = new FileInfo(path).LastWriteTime, Mode = 1 };                
             }                                                                                  
         }
 
-        public static DateTime GetDateTakenFromImage(string path)
-        {
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
-            using (Image myImage = Image.FromStream(fs/*, false, false*/))
-            {
-                PropertyItem propItem = null;
-                try
-                {
-                    propItem = myImage.GetPropertyItem(36867);
-                }
-                catch { }
-                if (propItem != null)
-                {
-                    string dateTaken = r.Replace(Encoding.UTF8.GetString(propItem.Value), "-", 2);
-                    return DateTime.Parse(dateTaken);
-                }
-                else
-                    return new FileInfo(path).LastWriteTime;
-            }
-        }
+        //public static DateTime GetDateTakenFromImage(string path)
+        //{
+        //    using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+        //    using (Image myImage = Image.FromStream(fs/*, false, false*/))
+        //    {
+        //        PropertyItem propItem = null;
+        //        try
+        //        {
+        //            propItem = myImage.GetPropertyItem(36867);
+        //        }
+        //        catch { }
+        //        if (propItem != null)
+        //        {
+        //            string dateTaken = r.Replace(Encoding.UTF8.GetString(propItem.Value), "-", 2);
+        //            return DateTime.Parse(dateTaken);
+        //        }
+        //        else
+        //            return new FileInfo(path).LastWriteTime;
+        //    }
+        //}
 
         
         private static string[] imagesFormats = new string[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp",".gif",".eps", ".raw", ".cr2", ".nef", ".orf", ".sr2" };
@@ -103,11 +109,10 @@ namespace photos_videos_organizer
                     {
                         string fullname = f.FullName;
                         if ( imagesFormats.Any(p=> fullname.ToLower().EndsWith(p)))
-                        {
-                            //DateTime t = GetDateTakenFromImage(fullname);
-                            DateTime t = GetDateTakenFromImage2(fullname);
+                        {                   
+                            var t = GetDateTakenFromImage2(fullname);
 
-                            string p = Path.Combine(dirTarget, t.Year + t.Month.ToString("00"));
+                            string p =     Path.Combine(dirTarget,  "mode_"+ t.Mode,   t.Date.Year + t.Date.Month.ToString("00"));
                             new DirectoryInfo(p).Create();
                             File.Copy(fullname, Path.Combine(p, f.Name), true);
 
