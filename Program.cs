@@ -26,7 +26,7 @@ namespace photos_videos_organizer
     {
         private static int lst_extenssions = 0;
         private static int process_photos = 1;
-        private static int process_videos = 1;
+        private static int process_videos = 2;
         //public static string dirToSave;
         public static string dirTarget;
         static void Main(string[] args)
