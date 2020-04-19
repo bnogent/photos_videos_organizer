@@ -18,8 +18,15 @@ namespace photos_videos_organizer
         public DateTime Date { get; set; }
         public int Mode { get; set; }
     }
+
+    
+
+
     class Program
     {
+        private static int lst_extenssions = 0;
+        private static int process_photos = 1;
+        private static int process_videos = 1;
         //public static string dirToSave;
         public static string dirTarget;
         static void Main(string[] args)
@@ -31,16 +38,9 @@ namespace photos_videos_organizer
             logerr = args[2];
                         
             Console.WriteLine("Let's go");
-            ParseDirAnCopy(new DirectoryInfo(dirToSave));
+            ParseDirAnCopy(new DirectoryInfo(dirToSave), process_videos);
             Console.WriteLine("The end.");
-
-
-            //Console.WriteLine();
-            //Console.WriteLine($"New files: count={newFilesCount}, size={newFilesSize}");
-            //Console.WriteLine($"Existing files: count={existingFilesCount}, size={existingFilesSize}");
-            //Console.WriteLine($"Total: count={newFilesCount + existingFilesCount}, size={newFilesSize + existingFilesSize}");
-            //Console.WriteLine($"Errors : {errors} - see '{logerr}'");
-
+            
             watch.Stop();
             Console.WriteLine($"Elapsed hours={watch.Elapsed.TotalHours}");
         }
@@ -61,14 +61,14 @@ namespace photos_videos_organizer
                     var dateTime = subIfdDirectory?.GetDateTime(ExifDirectoryBase.TagDateTimeOriginal);
                     if (dateTime.HasValue)
                     {
-                        nimages++;
+                        n++;
                         return new DateInfos() { Date = dateTime.Value, Mode = 0 };                        
                     }                    
                 }
                 throw new Exception("perso");
             } catch
             {
-                nimageslastwrite++;
+                nlastwrite++;
                 return new DateInfos() { Date = new FileInfo(path).LastWriteTime, Mode = 1 };                
             }                                                                                  
         }
@@ -96,10 +96,13 @@ namespace photos_videos_organizer
 
         
         private static string[] imagesFormats = new string[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp",".gif",".eps", ".raw", ".cr2", ".nef", ".orf", ".sr2" };
-        public static int nimages = 0;
-        public static int nimageslastwrite = 0;
-        
-        public static void ParseDirAnCopy(DirectoryInfo dir)
+        private static string[] videosFormats = new string[] { ".mts", ".mpg", ".mp2", ".mpeg", ".mpe", ".mpv", ".ogg", ".mp4", ".m4p", ".m4v", ".avi", ".wmv", ".webm", ".mov", ".qt", ".flv", ".swf", };
+        public static int n = 0;
+        public static int nlastwrite = 0;
+
+        private static HashSet<string> exts = new HashSet<string>();
+
+        public static void ParseDirAnCopy(DirectoryInfo dir, int method)
         {
             try
             {
@@ -107,19 +110,52 @@ namespace photos_videos_organizer
                 {
                     try
                     {
-                        string fullname = f.FullName;
-                        if ( imagesFormats.Any(p=> fullname.ToLower().EndsWith(p)))
-                        {                   
-                            var t = GetDateTakenFromImage2(fullname);
 
-                            string p =     Path.Combine(dirTarget,  "mode_"+ t.Mode,   t.Date.Year + t.Date.Month.ToString("00"));
-                            new DirectoryInfo(p).Create();
-                            File.Copy(fullname, Path.Combine(p, f.Name), true);
+                        if (method == process_photos)
+                        {
+                            string fullname = f.FullName;
+                            if (imagesFormats.Any(p => fullname.ToLower().EndsWith(p)))
+                            {
+                                var t = GetDateTakenFromImage2(fullname);
 
-                           
-                            if ((nimages + nimageslastwrite) %100==0)
-                                Console.WriteLine($"{nimages} + {nimageslastwrite } = {nimages+nimageslastwrite}   images traitées");
+                                string p = Path.Combine(dirTarget, "mode_photos_" + t.Mode, t.Date.Year + t.Date.Month.ToString("00"));
+                                new DirectoryInfo(p).Create();
+                                File.Copy(fullname, Path.Combine(p, f.Name), true);
+
+
+                                if ((n + nlastwrite) % 100 == 0)
+                                    Console.WriteLine($"{n} + {nlastwrite } = {n + nlastwrite}   images traitées");
+                            }
                         }
+
+                        else if (method == process_videos)
+                        {
+                            string fullname = f.FullName;
+                            if (videosFormats.Any(p => fullname.ToLower().EndsWith(p)))
+                            {
+                                var t = GetDateTakenFromImage2(fullname);
+
+                                string p = Path.Combine(dirTarget, "mode_videos_" + t.Mode, t.Date.Year + t.Date.Month.ToString("00"));
+                                new DirectoryInfo(p).Create();
+                                File.Copy(fullname, Path.Combine(p, f.Name), true);
+
+
+                                if ((n + nlastwrite) % 100 == 0)
+                                    Console.WriteLine($"{n} + {nlastwrite } = {n + nlastwrite}   videos traitées");
+                            }
+                        }
+
+                        else if (method == lst_extenssions)
+                        {
+                            if (!exts.Contains(f.Extension))
+                            {
+                                exts.Add(f.Extension);
+                                File.AppendAllLines("exts.txt", new List<string>() { f.Extension });
+                            }
+                                
+                        }
+
+                        
                     }
                     catch(Exception e)
                     {
@@ -136,7 +172,7 @@ namespace photos_videos_organizer
             try
             {
                 foreach (var d in dir.GetDirectories())
-                    ParseDirAnCopy(d);
+                    ParseDirAnCopy(d, method);
             }
             catch
             {
